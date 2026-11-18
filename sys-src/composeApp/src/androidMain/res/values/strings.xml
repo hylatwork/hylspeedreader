@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Only the launcher label lives here: user-facing Compose strings are in
+      commonMain/composeResources (shared with iOS). The manifest cannot read
+      Compose resources, so it needs this one entry.
+    -->
+    <string name="app_name">HylSpeedReader</string>
+</resources>

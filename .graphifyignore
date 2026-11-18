@@ -1,0 +1,18 @@
+# graphify exclusion rules. See AGENTS.md, section "Knowledge Graph (graphify)".
+#
+# `graphify update sys-src/composeApp/src` scans only the Kotlin/Compose source
+# tree, but
+# this file lives at the repository root, so every pattern below is
+# repository-relative (gitignore syntax; a pattern containing "/" is anchored at
+# this file's directory). A .graphifyignore can only ever exclude MORE than a
+# .gitignore, never re-include a path a .gitignore already dropped.
+
+# Gradle / Android build output (also a graphify default skip dir - kept explicit
+# on purpose, so the exclusion is documented rather than implicit).
+sys-src/composeApp/build/
+sys-src/build/
+sys-src/.gradle/
+sys-src/.kotlin/
+
+# graphify's own output must never be ingested as source.
+graphify-out/

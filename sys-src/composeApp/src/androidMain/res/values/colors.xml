@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#16324F</color>
+
+    <!-- Matches the Compose surface so the window background does not flash a
+         different colour behind the edge-to-edge system bars during startup. -->
+    <color name="theme_window_background">#FFFBFE</color>
+</resources>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HylSpeedReader</string>
+    <string name="reader_title">RSVP Speed Reader</string>
+
+    <!-- Empty state -->
+    <string name="empty_state_title">No book loaded</string>
+    <string name="empty_state_body">Pick a local .epub file to start speed-reading with RSVP.</string>
+    <string name="empty_state_button">Open EPUB</string>
+
+    <!-- RSVP canvas placeholders -->
+    <string name="reader_placeholder_ready">Ready</string>
+    <string name="reader_placeholder_loading">Loading.</string>
+    <string name="reader_placeholder_empty_chapter">This chapter contains no extractable text</string>
+
+    <!-- Chapter drawer -->
+    <string name="drawer_no_book">No book</string>
+    <string name="drawer_empty">Open an EPUB to see its chapters here.</string>
+    <string name="chapter_label">Chapter %1$d</string>
+
+    <!-- Player controls -->
+    <string name="chapter_none_loaded">No chapter loaded</string>
+    <string name="chapter_complete">Chapter complete</string>
+    <string name="chapter_of">Chapter %1$d of %2$d</string>
+    <plurals name="words_progress">
+        <item quantity="one">%1$d / %2$d word</item>
+        <item quantity="other">%1$d / %2$d words</item>
+    </plurals>
+    <string name="speed_label">Speed</string>
+    <string name="speed_value">%1$d wpm</string>
+
+    <!-- Accessibility labels -->
+    <string name="cd_chapter_overview">Chapter overview</string>
+    <string name="cd_open_epub">Open EPUB</string>
+    <string name="cd_previous_chapter">Previous chapter</string>
+    <string name="cd_next_chapter">Next chapter</string>
+    <plurals name="cd_skip_back">
+        <item quantity="one">Skip back %1$d word</item>
+        <item quantity="other">Skip back %1$d words</item>
+    </plurals>
+    <plurals name="cd_skip_forward">
+        <item quantity="one">Skip forward %1$d word</item>
+        <item quantity="other">Skip forward %1$d words</item>
+    </plurals>
+    <string name="cd_play">Play</string>
+    <string name="cd_pause">Pause</string>
+    <string name="cd_reading_progress">Reading position</string>
+    <string name="cd_reading_speed">Reading speed</string>
+
+    <!-- Errors -->
+    <string name="error_open_epub">Couldn\'t open this EPUB. It may be corrupt or unsupported.</string>
+    <string name="error_load_chapter">Couldn\'t load this chapter.</string>
+</resources>

@@ -1,0 +1,178 @@
+# Codemagic CI/CD for HylSpeedReader (Kotlin Multiplatform + Compose Multiplatform).
+#
+# Repo layout: this file sits at the repository root; the Gradle project lives in
+# `sys-src/`, and the iOS Xcode wrapper in `sys-src/iosApp/`.
+#
+# Free-tier friendly: the iOS workflow runs on a macOS M2 instance (Intel Macs
+# are not used); the Android workflow runs on a much cheaper Linux instance and
+# reuses the same Gradle caches.
+
+# Shared cache paths (kept in one place so both workflows stay in sync).
+definitions:
+  gradle_cache: &gradle_cache
+    cache_paths:
+      - ~/.gradle/caches
+      - ~/.gradle/wrapper
+
+workflows:
+
+  # ---------------------------------------------------------------------------
+  # iOS: build the KMP framework + an unsigned simulator .app (no Apple account
+  # required). A ready-to-enable, code-signed .ipa block for the App Store is
+  # included below and is activated once Apple credentials are added.
+  # ---------------------------------------------------------------------------
+  ios-workflow:
+    name: iOS (simulator .app; .ipa ready)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      xcode: latest
+      java: 17
+      cache: *gradle_cache
+      vars:
+        XCODE_PROJECT: "sys-src/iosApp/iosApp.xcodeproj"
+        XCODE_SCHEME: "iosApp"
+        BUNDLE_ID: "eu.hylatwork.hylspeedreader"
+      # --- Option B: enable code signing once credentials exist --------------
+      # 1. Add your App Store Connect API key under Teams > Integrations >
+      #    Developer Portal, name it `appstore_credentials` (the `groups` below),
+      #    and create a `appstore_credentials` variable group with:
+      #        APP_STORE_CONNECT_ISSUER_ID
+      #        APP_STORE_CONNECT_KEY_IDENTIFIER
+      #        APP_STORE_CONNECT_PRIVATE_KEY
+      #        CERTIFICATE_PRIVATE_KEY      (the .p12 private key password/content)
+      # 2. Put your Apple Team ID into sys-src/iosApp/Configuration/Config.xcconfig
+      #    (TEAM_ID=XXXXXXXXXX).
+      # 3. Uncomment the two lines below.
+      # groups:
+      #   - appstore_credentials
+      # integrations:
+      #   app_store_connect: appstore_credentials
+    triggering:
+      events:
+        - push
+        - tag
+        - pull_request
+      branch_patterns:
+        - pattern: '*'
+          include: true
+    scripts:
+      - name: Make Gradle wrapper executable
+        script: chmod +x sys-src/gradlew
+      - name: Locate Android SDK (needed to configure the KMP module on macOS)
+        script: |
+          set -e
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "$SDK" ]; then
+            for candidate in \
+              "$HOME/Library/Android/sdk" \
+              "/Users/builder/Library/Android/sdk" \
+              "/usr/local/share/android-sdk"; do
+              if [ -d "$candidate" ]; then SDK="$candidate"; break; fi
+            done
+          fi
+          if [ -z "$SDK" ]; then
+            echo "No Android SDK found; installing command-line tools..."
+            brew install --cask android-commandlinetools || true
+            export ANDROID_SDK_ROOT="$HOME/Library/Android/sdk"
+            yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+            SDK="$ANDROID_SDK_ROOT"
+          fi
+          echo "sdk.dir=$SDK" > sys-src/local.properties
+          echo "Using Android SDK at $SDK"
+      - name: Verify / generate the KMP iOS framework
+        script: |
+          cd sys-src
+          ./gradlew :composeApp:linkReleaseFrameworkIosArm64 --no-daemon --stacktrace
+      - name: Build unsigned simulator .app (Option A)
+        script: |
+          set -e
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath sys-src/build/ios-simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            -quiet
+      - name: Zip the simulator app
+        script: |
+          set -e
+          APP_DIR="sys-src/build/ios-simulator/Build/Products/Debug-iphonesimulator"
+          cd "$APP_DIR"
+          zip -r "$CM_BUILD_DIR/HylSpeedReader-simulator.zip" "iosApp.app"
+      # --- Option B: signed .ipa for TestFlight / App Store ------------------
+      # Uncomment once the `appstore_credentials` integration + variable group
+      # and TEAM_ID (Config.xcconfig) are set up.
+      #
+      # - name: Fetch code-signing files
+      #   script: |
+      #     keychain initialize
+      #     app-store-connect fetch-signing-files "$BUNDLE_ID" \
+      #       --type IOS_APP_STORE --create
+      #     keychain add-certificates
+      #     xcode-project use-profiles
+      # - name: Build signed .ipa
+      #   script: |
+      #     xcode-project build-ipa \
+      #       --project "$XCODE_PROJECT" \
+      #       --scheme "$XCODE_SCHEME" \
+      #       --archive-flags="-destination generic/platform=iOS"
+    artifacts:
+      - $CM_BUILD_DIR/HylSpeedReader-simulator.zip
+      - sys-src/build/ios-simulator/Build/Products/Debug-iphonesimulator/*.app
+      # - sys-src/build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - your.email@example.com   # <-- replace with your address
+        notify:
+          success: true
+          failure: true
+
+  # ---------------------------------------------------------------------------
+  # Android: cheap Linux build of the debug + release APK (saves macOS minutes).
+  # ---------------------------------------------------------------------------
+  android-workflow:
+    name: Android APK
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      java: 17
+      cache: *gradle_cache
+    triggering:
+      events:
+        - push
+        - tag
+        - pull_request
+      branch_patterns:
+        - pattern: '*'
+          include: true
+    scripts:
+      - name: Make Gradle wrapper executable
+        script: chmod +x sys-src/gradlew
+      - name: Point Gradle at the bundled Android SDK
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > sys-src/local.properties
+      - name: Unit tests (incl. architecture guard)
+        script: |
+          cd sys-src
+          ./gradlew :composeApp:testDebugUnitTest --no-daemon --stacktrace
+      - name: Assemble debug + release APKs
+        script: |
+          cd sys-src
+          ./gradlew :composeApp:assembleDebug :composeApp:assembleRelease --no-daemon --stacktrace
+    artifacts:
+      - sys-src/composeApp/build/outputs/apk/debug/*.apk
+      - sys-src/composeApp/build/outputs/apk/release/*.apk
+      - sys-src/dist/*.apk
+    publishing:
+      email:
+        recipients:
+          - your.email@example.com   # <-- replace with your address
+        notify:
+          success: true
+          failure: false

@@ -1,0 +1,5 @@
+<resources>
+    <style name="Theme.HylSpeedReader" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/theme_window_background</item>
+    </style>
+</resources>

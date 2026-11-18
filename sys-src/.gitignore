@@ -1,0 +1,13 @@
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+.cxx/
+
+# Release APK drop-point (populated by the copyReleaseApkToDist Gradle task)
+dist/*
+!dist/.gitkeep
